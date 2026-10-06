@@ -1,0 +1,102 @@
+services:
+
+  # =========================
+  # MongoDB
+  # =========================
+  nosql-db:
+    image: mvertes/alpine-mongo
+    container_name: nosql-db
+    ports:
+      - "27018:27017"
+    volumes:
+      - ./db:/data/db
+
+
+  # =========================
+  # RabbitMQ
+  # =========================
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+
+  # =========================
+  # Products Service
+  # =========================
+  products:
+    build:
+      context: ./products
+      dockerfile: Dockerfile
+    container_name: products
+    ports:
+      - "8002:8002"
+    restart: always
+    depends_on:
+      - nosql-db
+      - rabbitmq
+    volumes:
+      - ./products:/app/products
+      - /app/products/node_modules
+    env_file:
+      - ./products/.env.dev
+
+
+  # =========================
+  # Shopping Service
+  # =========================
+  shopping:
+    build:
+      context: ./shopping
+      dockerfile: Dockerfile
+    container_name: shopping
+    ports:
+      - "8003:8003"
+    restart: always
+    depends_on:
+      - nosql-db
+      - rabbitmq
+    volumes:
+      - ./shopping:/app/shopping
+      - /app/shopping/node_modules
+    env_file:
+      - ./shopping/.env.dev
+
+
+  # =========================
+  # Customer Service
+  # =========================
+  customer:
+    build:
+      context: ./customer
+      dockerfile: Dockerfile
+    container_name: customer
+    ports:
+      - "8001:8001"
+    restart: always
+    depends_on:
+      - nosql-db
+      - rabbitmq
+    volumes:
+      - ./customer:/app/customer
+      - /app/customer/node_modules
+    env_file:
+      - ./customer/.env.dev
+
+
+  # =========================
+  # Nginx Reverse Proxy
+  # =========================
+  nginx-proxy:
+    build:
+      context: ./proxy
+      dockerfile: Dockerfile
+    container_name: nginx-proxy
+    depends_on:
+      - products
+      - shopping
+      - customer
+    ports:
+      - "8080:80"
