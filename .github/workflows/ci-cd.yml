@@ -1,55 +1,159 @@
 name: CI/CD
 
 on:
-  push:
-    branches:
-      - staging
-      - prod
-
   pull_request:
     branches:
       - main
       - staging
       - prod
 
+  push:
+    branches:
+      - main
+      - staging
+      - prod
+
 jobs:
-  test:
-    name: Tests
+
+  # =========================
+  # TEST PRODUCTS
+  # =========================
+  test-products:
+    name: Test Products
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: products
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
+          cache-dependency-path: products/package-lock.json
 
       - name: Install dependencies
         run: npm ci
 
       - name: Run tests
-        run: npm test
+        run: npm test -- --runInBand
 
-  build:
-    name: Build
-    needs: test
+
+  # =========================
+  # TEST CUSTOMER
+  # =========================
+  test-customer:
+    name: Test Customer
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: customer
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: customer/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test -- --runInBand
+
+
+  # =========================
+  # TEST SHOPPING
+  # =========================
+  test-shopping:
+    name: Test Shopping
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: shopping
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: shopping/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test -- --runInBand
+
+
+  # =========================
+  # CHECK GATEWAY
+  # =========================
+  check-gateway:
+    name: Check Gateway
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: gateway
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: gateway/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+
+  # =========================
+  # BUILD DOCKER IMAGES
+  # =========================
+  docker-build:
+    name: Build Docker images
+    needs:
+      - test-products
+      - test-customer
+      - test-shopping
+      - check-gateway
+
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
+      - name: Build Products
+        run: docker build -t products:ci ./products
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Build Customer
+        run: docker build -t customer:ci ./customer
 
-      - name: Build
-        run: npm run build
+      - name: Build Shopping
+        run: docker build -t shopping:ci ./shopping
+
+      - name: Build Proxy
+        run: docker build -t proxy:ci ./proxy
+
