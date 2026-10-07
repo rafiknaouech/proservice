@@ -131,8 +131,14 @@ jobs:
   # =========================
   # BUILD DOCKER IMAGES
   # =========================
+  # =========================
+  # BUILD DOCKER IMAGES
+  # =========================
+  # =========================
+  # BUILD AND PUSH DOCKER IMAGES
+  # =========================
   docker-build:
-    name: Build Docker images
+    name: Build and Push Docker images
     needs:
       - test-products
       - test-customer
@@ -141,19 +147,38 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      packages: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build Products
-        run: docker build -t products:ci ./products
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}
 
-      - name: Build Customer
-        run: docker build -t customer:ci ./customer
+      - name: Build and push Products
+        run: |
+          docker build -t ghcr.io/rafiknaouech/proservice/products:${{ github.sha }} ./products
+          docker push ghcr.io/rafiknaouech/proservice/products:${{ github.sha }}
 
-      - name: Build Shopping
-        run: docker build -t shopping:ci ./shopping
+      - name: Build and push Customer
+        run: |
+          docker build -t ghcr.io/rafiknaouech/proservice/customer:${{ github.sha }} ./customer
+          docker push ghcr.io/rafiknaouech/proservice/customer:${{ github.sha }}
 
-      - name: Build Proxy
-        run: docker build -t proxy:ci ./proxy
+      - name: Build and push Shopping
+        run: |
+          docker build -t ghcr.io/rafiknaouech/proservice/shopping:${{ github.sha }} ./shopping
+          docker push ghcr.io/rafiknaouech/proservice/shopping:${{ github.sha }}
+
+      - name: Build and push Proxy
+        run: |
+          docker build -t ghcr.io/rafiknaouech/proservice/proxy:${{ github.sha }} ./proxy
+          docker push ghcr.io/rafiknaouech/proservice/proxy:${{ github.sha }}
 
