@@ -1,117 +1,160 @@
 name: CI/CD
 
-on: pull_request: branches: - main - staging - prod
+on:
+  pull_request:
+    branches:
+      - main
+      - staging
+      - prod
 
-push: branches: - main - staging - prod
+  push:
+    branches:
+      - main
+      - staging
+      - prod
 
 jobs:
 
-=========================
-TEST PRODUCTS
-=========================
+  test-products:
+    name: Test Products
+    runs-on: ubuntu-latest
 
-test-products: name: Test Products runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: products
 
-defaults: run: working-directory: products
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-steps: - name: Checkout uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-- name: Setup Node.js uses: actions/setup-node@v4 with: node-version: 20
+      - name: Install dependencies
+        run: npm ci
 
-- name: Install dependencies run: npm ci
+      - name: Run tests
+        run: npm test -- --runInBand
 
-- name: Run tests run: npm test -- --runInBand
 
-=========================
-TEST CUSTOMER
-=========================
+  test-customer:
+    name: Test Customer
+    runs-on: ubuntu-latest
 
-test-customer: name: Test Customer runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: customer
 
-defaults: run: working-directory: customer
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-steps: - name: Checkout uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-- name: Setup Node.js uses: actions/setup-node@v4 with: node-version: 20
+      - name: Install dependencies
+        run: npm ci
 
-- name: Install dependencies run: npm ci
+      - name: Run tests
+        run: npm test -- --runInBand
 
-- name: Run tests run: npm test -- --runInBand
 
-=========================
-TEST SHOPPING
-=========================
+  test-shopping:
+    name: Test Shopping
+    runs-on: ubuntu-latest
 
-test-shopping: name: Test Shopping runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: shopping
 
-defaults: run: working-directory: shopping
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-steps: - name: Checkout uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-- name: Setup Node.js uses: actions/setup-node@v4 with: node-version: 20
+      - name: Install dependencies
+        run: npm ci
 
-- name: Install dependencies run: npm ci
+      - name: Run tests
+        run: npm test -- --runInBand
 
-- name: Run tests run: npm test -- --runInBand
 
-=========================
-CHECK GATEWAY
-=========================
+  check-gateway:
+    name: Check Gateway
+    runs-on: ubuntu-latest
 
-check-gateway: name: Check Gateway runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: gateway
 
-defaults: run: working-directory: gateway
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-steps: - name: Checkout uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-- name: Setup Node.js uses: actions/setup-node@v4 with: node-version: 20
+      - name: Check Node.js
+        run: |
+          node --version
+          npm --version
 
-- name: Check Node.js run: | node --version npm --version
+      - name: Install dependencies
+        run: npm install
 
-- name: Install dependencies run: npm install
 
-=========================
-BUILD AND PUSH DOCKER
-=========================
+  docker-build:
+    name: Build and Push Docker images
 
-docker-build: name: Build and Push Docker images
+    needs:
+      - test-products
+      - test-customer
+      - test-shopping
+      - check-gateway
 
-needs: - test-products - test-customer - test-shopping - check-gateway
+    runs-on: ubuntu-latest
 
-runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
-permissions: contents: read packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-steps:
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-# ========================= # CHECKOUT # ========================= - name: Checkout uses: actions/checkout@v4
+      - name: Build and push Products
+        run: |
+          docker build -t ghcr.io/rafiknaouech/proservice/products:${{ github.sha }} ./products
+          docker push ghcr.io/rafiknaouech/proservice/products:${{ github.sha }}
 
-# ========================= # LOGIN GHCR # ========================= - name: Login to GHCR uses: docker/login-action@v3 with: registry: ghcr.io username: ${{ github.actor }} password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push Customer
+        run: |
+          docker build -t ghcr.io/rafiknaouech/proservice/customer:${{ github.sha }} ./customer
+          docker push ghcr.io/rafiknaouech/proservice/customer:${{ github.sha }}
 
-# ========================= # PRODUCTS # ========================= - name: Build and push Products run: | docker build
--t ghcr.io/rafiknaouech/proservice/products:${{ github.sha }}
-./products
+      - name: Build and push Shopping
+        run: |
+          docker build -t ghcr.io/rafiknaouech/proservice/shopping:${{ github.sha }} ./shopping
+          docker push ghcr.io/rafiknaouech/proservice/shopping:${{ github.sha }}
 
-docker push
-ghcr.io/rafiknaouech/proservice/products:${{ github.sha }}
-
-# ========================= # CUSTOMER # ========================= - name: Build and push Customer run: | docker build
--t ghcr.io/rafiknaouech/proservice/customer:${{ github.sha }}
-./customer
-
-docker push
-ghcr.io/rafiknaouech/proservice/customer:${{ github.sha }}
-
-# ========================= # SHOPPING # ========================= - name: Build and push Shopping run: | docker build
--t ghcr.io/rafiknaouech/proservice/shopping:${{ github.sha }}
-./shopping
-
-docker push
-ghcr.io/rafiknaouech/proservice/shopping:${{ github.sha }}
-
-# ========================= # PROXY # ========================= - name: Build and push Proxy run: | docker build
--t ghcr.io/rafiknaouech/proservice/proxy:${{ github.sha }}
-./proxy
-
-docker push
-ghcr.io/rafiknaouech/proservice/proxy:${{ github.sha }}
+      - name: Build and push Proxy
+        run: |
+          docker build -t ghcr.io/rafiknaouech/proservice/proxy:${{ github.sha }} ./proxy
+          docker push ghcr.io/rafiknaouech/proservice/proxy:${{ github.sha }}
