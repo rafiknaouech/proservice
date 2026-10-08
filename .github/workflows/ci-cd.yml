@@ -34,7 +34,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          
+
       - name: Install dependencies
         run: npm ci
 
@@ -61,7 +61,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-         
+
       - name: Install dependencies
         run: npm ci
 
@@ -88,7 +88,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-         
+
       - name: Install dependencies
         run: npm ci
 
@@ -98,7 +98,7 @@ jobs:
 
   # =========================
   # CHECK GATEWAY
-  # ========================
+  # =========================
   check-gateway:
     name: Check Gateway
     runs-on: ubuntu-latest
@@ -119,17 +119,13 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-  # =========================
-  # BUILD DOCKER IMAGES
-  # =========================
-  # =========================
-  # BUILD DOCKER IMAGES
-  # =========================
+
   # =========================
   # BUILD AND PUSH DOCKER IMAGES
   # =========================
   docker-build:
     name: Build and Push Docker images
+
     needs:
       - test-products
       - test-customer
@@ -138,38 +134,103 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    # Permissions required to push images to GitHub Container Registry
     permissions:
       contents: read
       packages: write
 
     steps:
+
+      # =========================
+      # CHECKOUT
+      # =========================
       - name: Checkout
         uses: actions/checkout@v4
 
+
+      # =========================
+      # LOGIN TO GHCR
+      # =========================
       - name: Login to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
+
+      # =========================
+      # PRODUCTS
+      # =========================
       - name: Build and push Products
         run: |
-          docker build -t ghcr.io/rafiknaouech/proservice/products:${{ github.sha }} ./products
-          docker push ghcr.io/rafiknaouech/proservice/products:${{ github.sha }}
+          docker build \
+            -t ghcr.io/rafiknaouech/proservice/products:${{ github.sha }} \
+            ./products
 
+          docker push \
+            ghcr.io/rafiknaouech/proservice/products:${{ github.sha }}
+
+
+      # =========================
+      # CUSTOMER
+      # =========================
       - name: Build and push Customer
         run: |
-          docker build -t ghcr.io/rafiknaouech/proservice/customer:${{ github.sha }} ./customer
-          docker push ghcr.io/rafiknaouech/proservice/customer:${{ github.sha }}
+          docker build \
+            -t ghcr.io/rafiknaouech/proservice/customer:${{ github.sha }} \
+            ./customer
 
+          docker push \
+            ghcr.io/rafiknaouech/proservice/customer:${{ github.sha }}
+
+
+      # =========================
+      # SHOPPING
+      # =========================
       - name: Build and push Shopping
         run: |
-          docker build -t ghcr.io/rafiknaouech/proservice/shopping:${{ github.sha }} ./shopping
-          docker push ghcr.io/rafiknaouech/proservice/shopping:${{ github.sha }}
+          docker build \
+            -t ghcr.io/rafiknaouech/proservice/shopping:${{ github.sha }} \
+            ./shopping
 
+          docker push \
+            ghcr.io/rafiknaouech/proservice/shopping:${{ github.sha }}
+
+
+      # =========================
+      # PROXY
+      # =========================
       - name: Build and push Proxy
         run: |
-          docker build -t ghcr.io/rafiknaouech/proservice/proxy:${{ github.sha }} ./proxy
-          docker push ghcr.io/rafiknaouech/proservice/proxy:${{ github.sha }}
+          docker build \
+            -t ghcr.io/rafiknaouech/proservice/proxy:${{ github.sha }} \
+            ./proxy
 
+          docker push \
+            ghcr.io/rafiknaouech/proservice/proxy:${{ github.sha }}
+
+Ensuite
+
+Remplace ton fichier actuel par celui-ci, puis :
+
+git add .github/workflows/
+git commit -m "fix: ghcr authentication"
+git push
+
+
+Le point important est :
+
+password: ${{ secrets.GITHUB_TOKEN }}
+
+
+et :
+
+permissions:
+  contents: read
+  packages: write
+
+
+Tu n'as plus besoin de GHCR_TOKEN pour ce workflow.
+
+Si le push échoue encore avec ce fichier, le problème sera probablement au niveau des permissions du package proservice sur GitHub, et non plus dans le workflow.
