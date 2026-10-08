@@ -30,6 +30,178 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check Node.js
+        run: |
+          node --version
+          npm --version
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test -- --runInBand
+
+
+  # =========================
+  # TEST CUSTOMER
+  # =========================
+  test-customer:
+    name: Test Customer
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: customer
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check Node.js
+        run: |
+          node --version
+          npm --version
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test -- --runInBand
+
+
+  # =========================
+  # TEST SHOPPING
+  # =========================
+  test-shopping:
+    name: Test Shopping
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: shopping
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check Node.js
+        run: |
+          node --version
+          npm --version
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test -- --runInBand
+
+
+  # =========================
+  # CHECK GATEWAY
+  # =========================
+  check-gateway:
+    name: Check Gateway
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: gateway
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check Node.js
+        run: |
+          node --version
+          npm --version
+
+      - name: Install dependencies
+        run: npm ci
+
+
+  # =========================
+  # BUILD AND PUSH DOCKER IMAGES
+  # =========================
+  docker-build:
+    name: Build and Push Docker images
+
+    needs:
+      - test-products
+      - test-customer
+      - test-shopping
+      - check-gateway
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+
+      # =========================
+      # CHECKOUT
+      # =========================
+      - name: Checkout
+        uses: actions/checkout@v4
+
+
+      # =========================
+      # LOGIN TO GHCR
+      # =========================
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+
+      # =========================
+      # BUILD AND PUSH PRODUCTS
+      # =========================
+      - name: Build and push Products
+        run: |
+          docker build \
+            -t ghcr.io/rafiknaouech/proservice/products:${{ github.sha }} \
+            ./products
+
+          docker push \
+            ghcr.io/rafiknaouech/proservice/products:${{ github.sha }}
+
+name: CI/CD
+
+on:
+  pull_request:
+    branches:
+      - main
+      - staging
+      - prod
+
+  push:
+    branches:
+      - main
+      - staging
+      - prod
+
+jobs:
+
+  # =========================
+  # TEST PRODUCTS
+  # =========================
+  test-products:
+    name: Test Products
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: products
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -171,6 +343,43 @@ jobs:
             ghcr.io/rafiknaouech/proservice/products:${{ github.sha }}
 
 
+      # =========================
+      # BUILD AND PUSH CUSTOMER
+      # =========================
+      - name: Build and push Customer
+        run: |
+          docker build \
+            -t ghcr.io/rafiknaouech/proservice/customer:${{ github.sha }} \
+            ./customer
+
+          docker push \
+            ghcr.io/rafiknaouech/proservice/customer:${{ github.sha }}
+
+
+      # =========================
+      # BUILD AND PUSH SHOPPING
+      # =========================
+      - name: Build and push Shopping
+        run: |
+          docker build \
+            -t ghcr.io/rafiknaouech/proservice/shopping:${{ github.sha }} \
+            ./shopping
+
+          docker push \
+            ghcr.io/rafiknaouech/proservice/shopping:${{ github.sha }}
+
+
+      # =========================
+      # BUILD AND PUSH PROXY
+      # =========================
+      - name: Build and push Proxy
+        run: |
+          docker build \
+            -t ghcr.io/rafiknaouech/proservice/proxy:${{ github.sha }} \
+            ./proxy
+
+          docker push \
+            ghcr.io/rafiknaouech/proservice/proxy:${{ github.sha }}
       # =========================
       # BUILD AND PUSH CUSTOMER
       # =========================
