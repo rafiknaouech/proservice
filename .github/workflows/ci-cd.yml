@@ -99,7 +99,7 @@ jobs:
   # =========================
   # CHECK GATEWAY
   # =========================
-    check-gateway:
+  check-gateway:
     name: Check Gateway
     runs-on: ubuntu-latest
 
@@ -119,6 +119,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+
   # =========================
   # BUILD AND PUSH DOCKER IMAGES
   # =========================
@@ -133,7 +134,6 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    # Permissions required to push images to GitHub Container Registry
     permissions:
       contents: read
       packages: write
@@ -159,7 +159,7 @@ jobs:
 
 
       # =========================
-      # PRODUCTS
+      # BUILD AND PUSH PRODUCTS
       # =========================
       - name: Build and push Products
         run: |
@@ -172,7 +172,7 @@ jobs:
 
 
       # =========================
-      # CUSTOMER
+      # BUILD AND PUSH CUSTOMER
       # =========================
       - name: Build and push Customer
         run: |
@@ -185,7 +185,7 @@ jobs:
 
 
       # =========================
-      # SHOPPING
+      # BUILD AND PUSH SHOPPING
       # =========================
       - name: Build and push Shopping
         run: |
@@ -198,7 +198,7 @@ jobs:
 
 
       # =========================
-      # PROXY
+      # BUILD AND PUSH PROXY
       # =========================
       - name: Build and push Proxy
         run: |
@@ -208,28 +208,3 @@ jobs:
 
           docker push \
             ghcr.io/rafiknaouech/proservice/proxy:${{ github.sha }}
-
-Ensuite
-
-Remplace ton fichier actuel par celui-ci, puis :
-
-git add .github/workflows/
-git commit -m "fix: ghcr authentication"
-git push
-
-
-Le point important est :
-
-password: ${{ secrets.GITHUB_TOKEN }}
-
-
-et :
-
-permissions:
-  contents: read
-  packages: write
-
-
-Tu n'as plus besoin de GHCR_TOKEN pour ce workflow.
-
-Si le push échoue encore avec ce fichier, le problème sera probablement au niveau des permissions du package proservice sur GitHub, et non plus dans le workflow.
