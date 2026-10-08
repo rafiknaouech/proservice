@@ -99,7 +99,7 @@ jobs:
   # =========================
   # CHECK GATEWAY
   # =========================
-   check-gateway:
+    check-gateway:
     name: Check Gateway
     runs-on: ubuntu-latest
 
@@ -111,10 +111,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
+      - name: Check Node.js
+        run: |
+          node --version
+          npm --version
 
       - name: Install dependencies
         run: npm ci
